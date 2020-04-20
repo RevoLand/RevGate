@@ -1,0 +1,12 @@
+Binaries/netcoreapp3.1/Logs/*
+Binaries/netcoreapp3.1/*.settings
+Binaries/netcoreapp3.1/*.config
+Binaries/netcoreapp3.1/*.pdb
+Binaries/netcoreapp3.1/*.xml
+Binaries/netcoreapp3.1/*vshost*
+Binaries/netcoreapp3.1/*.json
+*.suo
+Source/RevGate/obj/*
+Source/packages/*
+Source/.tools/*
+Source/.vs/*

@@ -1,0 +1,21 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<appSettings>
+  <proxy>
+    <remoteip>10.1.1.1</remoteip>
+    <redirip>127.0.0.1</redirip>
+    <remoteport>15778</remoteport>
+    <localport>5001</localport>
+    <redirport>5001</redirport>
+    <redirenabled>False</redirenabled>
+  </proxy>
+  <OpcodeFilterMode>ShowAll</OpcodeFilterMode>
+  <allowedOpcodes>
+    <Opcode>0x5000</Opcode>
+    <Opcode>0xA102</Opcode>
+  </allowedOpcodes>
+  <blockedOpcodes>
+    <Opcode>0x7081</Opcode>
+    <Opcode>0xA102</Opcode>
+    <Opcode>0x7021</Opcode>
+  </blockedOpcodes>
+</appSettings>
