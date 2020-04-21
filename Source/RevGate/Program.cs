@@ -1,4 +1,5 @@
-﻿using System;
+﻿using RevGate.ServerHandlers;
+using System;
 using System.Globalization;
 using System.Linq;
 using System.Net;
@@ -31,22 +32,21 @@ namespace RevGate
             {
                 GetProgram = this;
 
-                var server = new GateServer(IPAddress.Any, 15779);
-
-                Console.Write("Server starting...");
-                server.Start();
-                Console.WriteLine("Done!");
+                var gateway = new Gateway(IPAddress.Parse("10.0.0.0"), 15779);
+                var agent = new Agent(IPAddress.Parse("10.0.0.0"), 15884);
+                gateway.Start();
+                agent.Start();
 
                 while (true)
                 {
-                    foreach (var session in server.Clients.ToList())
+                    foreach (var session in gateway.Clients.ToList())
                     {
                         //Console.Clear();
                         Console.WriteLine("-");
                         Console.WriteLine($"BytesReceived: {session.BytesReceived}");
                         Console.WriteLine($"BytesPending: {session.BytesPending}");
                         Console.WriteLine($"BytesSent: {session.BytesSent}");
-                        Console.WriteLine($"Session Count: {server.Clients.Count}");
+                        Console.WriteLine($"Session Count: {gateway.Clients.Count}");
                     }
 
                     //var input = Console.ReadLine();
