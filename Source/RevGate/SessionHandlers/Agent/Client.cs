@@ -1,6 +1,7 @@
 ﻿using NetCoreServer;
 using RevGate.SilkroadSecurityApi;
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace RevGate.SessionHandlers.Agent
@@ -11,11 +12,17 @@ namespace RevGate.SessionHandlers.Agent
         {
             OnConnectedEvent += () =>
             {
-                Task.Run(HandlePackets, Cancellation.Token);
-                Task.Run(HandleOutgoingPackets, Cancellation.Token);
-
                 ProxyToServer = new Server("10.0.0.0", 23781, this, Cancellation);
                 ProxyToServer.ConnectAsync();
+
+                while (!ProxyToServer.IsConnected)
+                {
+                    Console.WriteLine($"{Id} ToServer is not connected!!");
+                    Thread.Sleep(1);
+                }
+
+                Task.Run(HandlePackets, Cancellation.Token);
+                Task.Run(HandleOutgoingPackets, Cancellation.Token);
             };
         }
 
@@ -23,7 +30,7 @@ namespace RevGate.SessionHandlers.Agent
         {
             try
             {
-                for (; ; )
+                while (!Cancellation.IsCancellationRequested)
                 {
                     IncomingPacketsMre.WaitOne();
                     Cancellation.Token.ThrowIfCancellationRequested();
@@ -31,21 +38,23 @@ namespace RevGate.SessionHandlers.Agent
                     var packets = Security.TransferIncoming();
                     foreach (var packet in packets)
                     {
-                        Console.WriteLine($"[P->C | In][{packet.Opcode:X4}]{Environment.NewLine}{Utility.HexDump(packet.GetBytes())}{Environment.NewLine}");
+                        //Console.WriteLine($"[P->C | In][{packet.Opcode:X4}]{Environment.NewLine}{Utility.HexDump(packet.GetBytes())}{Environment.NewLine}");
                         switch (packet.Opcode)
                         {
                             case 0x2001:
                             case 0x5000:
                             case 0x9000:
                                 continue;
-                            default:
-                                ProxyToServer.Security.Send(packet);
-                                break;
                         }
+                        ProxyToServer.Security.Send(packet);
                     }
 
                     OutgoingPacketsMre.Set();
-                    ProxyToServer.IncomingPacketsMre.Set();
+                    if (packets.Count > 0)
+                    {
+                        ProxyToServer.IncomingPacketsMre.Set();
+                    }
+
                     IncomingPacketsMre.Reset();
                 }
             }

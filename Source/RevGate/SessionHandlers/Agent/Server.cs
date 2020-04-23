@@ -20,7 +20,7 @@ namespace RevGate.SessionHandlers.Agent
         {
             try
             {
-                for (; ; )
+                while (!Cancellation.IsCancellationRequested)
                 {
                     IncomingPacketsMre.WaitOne();
                     Cancellation.Token.ThrowIfCancellationRequested();
@@ -28,20 +28,21 @@ namespace RevGate.SessionHandlers.Agent
                     var packets = Security.TransferIncoming();
                     foreach (var packet in packets)
                     {
-                        Console.WriteLine($"[S->P | In][{packet.Opcode:X4}]{Environment.NewLine}{Utility.HexDump(packet.GetBytes())}{Environment.NewLine}");
+                        //Console.WriteLine($"[S->P | In][{packet.Opcode:X4}]{Environment.NewLine}{Utility.HexDump(packet.GetBytes())}{Environment.NewLine}");
                         switch (packet.Opcode)
                         {
                             case 0x5000:
                             case 0x9000:
                                 continue;
-                            default:
-                                ProxyBaseToClient.Security.Send(packet);
-                                break;
                         }
+                        ProxyToClient.Security.Send(packet);
                     }
 
                     OutgoingPacketsMre.Set();
-                    ProxyBaseToClient.IncomingPacketsMre.Set();
+                    if (packets.Count > 0)
+                    {
+                        ProxyToClient.IncomingPacketsMre.Set();
+                    }
                     IncomingPacketsMre.Reset();
                 }
             }

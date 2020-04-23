@@ -9,7 +9,7 @@ namespace RevGate.SessionHandlers
 {
     internal abstract class BaseToServer : TcpClient
     {
-        public readonly BaseToClient ProxyBaseToClient;
+        public readonly BaseToClient ProxyToClient;
         public Security Security;
         public ManualResetEvent IncomingPacketsMre;
         public ManualResetEvent OutgoingPacketsMre;
@@ -29,7 +29,7 @@ namespace RevGate.SessionHandlers
 
         protected BaseToServer(string address, int port, BaseToClient session, CancellationTokenSource cancellation) : base(address, port)
         {
-            ProxyBaseToClient = session;
+            ProxyToClient = session;
             Cancellation = cancellation;
         }
 
@@ -37,7 +37,9 @@ namespace RevGate.SessionHandlers
         {
             try
             {
-                Console.WriteLine($"Proxy connected to the server with Id: {Id}");
+                OptionReceiveBufferSize = 4096;
+                OptionSendBufferSize = 4096;
+
                 Security = new Security();
                 IncomingPacketsMre = new ManualResetEvent(false);
                 OutgoingPacketsMre = new ManualResetEvent(false);
@@ -54,17 +56,20 @@ namespace RevGate.SessionHandlers
         protected override void OnDisconnected()
         {
             Cancellation.Cancel();
-            ProxyBaseToClient.Disconnect();
-            Console.WriteLine($"Proxy Client Disconnected from Server: {Id}");
+            if (ProxyToClient.IsConnected)
+            {
+                ProxyToClient.Disconnect();
+            }
+            //Console.WriteLine($"Proxy Client Disconnected from Server: {Id}");
 
             OnDisconnectedEvent?.Invoke();
         }
 
         protected override void OnReceived(byte[] buffer, long offset, long size)
         {
+            //Console.WriteLine($"[BaseToServer][{Id}] OnReceived");
             Security.Recv(buffer, (int)offset, (int)size);
             IncomingPacketsMre.Set();
-            OutgoingPacketsMre.Set();
 
             OnReceivedEvent?.Invoke(buffer, offset, size);
         }
@@ -83,7 +88,7 @@ namespace RevGate.SessionHandlers
         {
             try
             {
-                for (; ; )
+                while (!Cancellation.IsCancellationRequested)
                 {
                     OutgoingPacketsMre.WaitOne();
                     Cancellation.Token.ThrowIfCancellationRequested();
@@ -91,8 +96,8 @@ namespace RevGate.SessionHandlers
                     var packets = Security.TransferOutgoing();
                     foreach (var (transferBuffer, packet) in packets)
                     {
-                        Console.WriteLine($"[P->S | Out][{packet.Opcode:X4}]{Environment.NewLine}{Utility.HexDump(transferBuffer.Buffer)}{Environment.NewLine}");
-                        SendAsync(transferBuffer.Buffer, transferBuffer.Offset, transferBuffer.Size);
+                        //Console.WriteLine($"[P->S | Out][{packet.Opcode:X4}]{Environment.NewLine}{Utility.HexDump(transferBuffer.Buffer)}{Environment.NewLine}");
+                        Send(transferBuffer.Buffer, transferBuffer.Offset, transferBuffer.Size);
                     }
 
                     OutgoingPacketsMre.Reset();

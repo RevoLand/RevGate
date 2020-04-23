@@ -35,6 +35,9 @@ namespace RevGate.SessionHandlers
         {
             try
             {
+                OptionReceiveBufferSize = 4096;
+                OptionSendBufferSize = 4096;
+
                 Console.WriteLine($"Client connected with ID: {Id}");
 
                 Cancellation = new CancellationTokenSource();
@@ -56,17 +59,22 @@ namespace RevGate.SessionHandlers
         protected override void OnDisconnected()
         {
             Cancellation.Cancel();
-            ProxyToServer.DisconnectAsync();
-            Console.WriteLine($"Client with Id: {Id} disconnected!");
+            if (ProxyToServer.IsConnected)
+            {
+                ProxyToServer.DisconnectAsync();
+                while (ProxyToServer.IsConnected)
+                    Thread.Yield();
+            }
+            //Console.WriteLine($"Client with Id: {Id} disconnected!");
 
             OnDisconnectedEvent?.Invoke();
         }
 
         protected override void OnReceived(byte[] buffer, long offset, long size)
         {
+            //Console.WriteLine($"[BaseToClient][{Id}] OnReceived");
             Security.Recv(buffer, (int)offset, (int)size);
             IncomingPacketsMre.Set();
-            OutgoingPacketsMre.Set();
 
             OnReceivedEvent?.Invoke(buffer, offset, size);
         }
@@ -85,7 +93,7 @@ namespace RevGate.SessionHandlers
         {
             try
             {
-                for (; ; )
+                while (!Cancellation.IsCancellationRequested)
                 {
                     OutgoingPacketsMre.WaitOne();
                     Cancellation.Token.ThrowIfCancellationRequested();
@@ -93,8 +101,8 @@ namespace RevGate.SessionHandlers
                     var packets = Security.TransferOutgoing();
                     foreach (var (transferBuffer, packet) in packets)
                     {
-                        Console.WriteLine($"[C->P | Out][{packet.Opcode:X4}]{Environment.NewLine}{Utility.HexDump(transferBuffer.Buffer)}{Environment.NewLine}");
-                        SendAsync(transferBuffer.Buffer, transferBuffer.Offset, transferBuffer.Size);
+                        //Console.WriteLine($"[C->P | Out][{packet.Opcode:X4}]{Environment.NewLine}{Utility.HexDump(transferBuffer.Buffer)}{Environment.NewLine}");
+                        Send(transferBuffer.Buffer, transferBuffer.Offset, transferBuffer.Size);
                     }
 
                     OutgoingPacketsMre.Reset();

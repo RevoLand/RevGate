@@ -1,6 +1,6 @@
 ﻿using NetCoreServer;
 using System;
-using System.Collections.ObjectModel;
+using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
 
@@ -8,7 +8,8 @@ namespace RevGate.ServerHandlers
 {
     internal abstract class ServerBase : TcpServer
     {
-        public readonly ObservableCollection<SessionHandlers.BaseToClient> Clients;
+        public readonly List<SessionHandlers.BaseToClient> Clients;
+        private readonly object _locker = new object();
 
         #region Events
 
@@ -24,7 +25,7 @@ namespace RevGate.ServerHandlers
 
         protected ServerBase(IPAddress address, int port) : base(address, port)
         {
-            Clients = new ObservableCollection<SessionHandlers.BaseToClient>();
+            Clients = new List<SessionHandlers.BaseToClient>();
         }
 
         protected abstract override TcpSession CreateSession();
@@ -43,15 +44,13 @@ namespace RevGate.ServerHandlers
 
         protected override void OnConnected(TcpSession session)
         {
-            Clients.Add((SessionHandlers.BaseToClient)session);
-
+            //Clients.Add((SessionHandlers.BaseToClient)session);
             OnConnectedEvent?.Invoke(session);
         }
 
         protected override void OnDisconnected(TcpSession session)
         {
-            Clients.Remove((SessionHandlers.BaseToClient)session);
-
+            //Clients.Remove((SessionHandlers.BaseToClient)session);
             OnDisconnectedEvent?.Invoke(session);
         }
     }

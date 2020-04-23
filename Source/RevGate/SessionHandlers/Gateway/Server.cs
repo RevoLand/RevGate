@@ -20,15 +20,16 @@ namespace RevGate.SessionHandlers.Gateway
         {
             try
             {
-                for (; ; )
+                while (!Cancellation.IsCancellationRequested)
                 {
                     IncomingPacketsMre.WaitOne();
                     Cancellation.Token.ThrowIfCancellationRequested();
 
                     var packets = Security.TransferIncoming();
+                    Packet newPacket;
                     foreach (var packet in packets)
                     {
-                        Console.WriteLine($"[S->P | In][{packet.Opcode:X4}]{Environment.NewLine}{Utility.HexDump(packet.GetBytes())}{Environment.NewLine}");
+                        //Console.WriteLine($"[S->P | In][{packet.Opcode:X4}]{Environment.NewLine}{Utility.HexDump(packet.GetBytes())}{Environment.NewLine}");
                         switch (packet.Opcode)
                         {
                             case 0x5000:
@@ -40,26 +41,34 @@ namespace RevGate.SessionHandlers.Gateway
                                 {
                                     var id = packet.ReadInt();
 
-                                    var newPacket = new Packet(0xA102, true);
+                                    newPacket = new Packet(0xA102, true);
                                     newPacket.WriteByte(1);
                                     newPacket.WriteUInt32(id);
 
                                     newPacket.WriteAscii("10.0.0.0");
-                                    newPacket.WriteUInt16("15884");
+                                    newPacket.WriteUInt16(15884);
                                     newPacket.WriteInt(0);
 
-                                    ProxyBaseToClient.Security.Send(newPacket);
+                                    ProxyToClient.Security.Send(newPacket);
+                                    continue;
                                 }
                                 break;
 
-                            default:
-                                ProxyBaseToClient.Security.Send(packet);
-                                break;
+                            case 0x2322:
+                                newPacket = new Packet(0x6323);
+                                newPacket.WriteAscii("1");
+                                Security.Send(newPacket);
+                                continue;
                         }
+                        ProxyToClient.Security.Send(packet);
                     }
 
                     OutgoingPacketsMre.Set();
-                    ProxyBaseToClient.IncomingPacketsMre.Set();
+                    if (packets.Count > 0)
+                    {
+                        ProxyToClient.IncomingPacketsMre.Set();
+                    }
+
                     IncomingPacketsMre.Reset();
                 }
             }
