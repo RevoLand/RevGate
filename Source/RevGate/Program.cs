@@ -1,7 +1,6 @@
 ﻿using RevGate.ServerHandlers;
 using System;
 using System.Globalization;
-using System.Net;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -31,27 +30,19 @@ namespace RevGate
             {
                 GetProgram = this;
 
-                var gateway = new Gateway(IPAddress.Parse("10.0.0.0"), 15779);
-                var agent = new Agent(IPAddress.Parse("10.0.0.0"), 15884);
+                var gateway = new Gateway("10.0.0.0", 15779);
                 gateway.Start();
-                agent.Start();
+                //var agent = new Agent(IPAddress.Parse("10.0.0.0"), 15884);
+                //agent.Start();
 
                 while (true)
                 {
-                    //foreach (var session in gateway.Clients.ToList())
-                    //{
-                    //    //Console.Clear();
-                    //    Console.WriteLine("-");
-                    //    Console.WriteLine($"BytesReceived: {session.BytesReceived}");
-                    //    Console.WriteLine($"BytesPending: {session.BytesPending}");
-                    //    Console.WriteLine($"BytesSent: {session.BytesSent}");
-                    //    Console.WriteLine($"Session Count: {gateway.Clients.Count}");
-                    //}
+                    //Console.WriteLine($"Active Sessions: {gateway.Sessions.Count}");
 
                     ////var input = Console.ReadLine();
                     //Thread.Sleep(1000);
                     var input = Console.ReadLine();
-                    Thread.Sleep(1);
+                    Thread.Sleep(2000);
                 }
             }
             catch (Exception ex)

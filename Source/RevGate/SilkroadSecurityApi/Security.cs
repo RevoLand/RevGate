@@ -1182,9 +1182,9 @@ namespace RevGate.SilkroadSecurityApi
                             // They do not need to actually do anything with them. This was added to
                             // help debugging and make output logs complete.
 
-                            Packet packet = new Packet(packet_opcode, packet_encrypted, false, buffer.Buffer, 6, packet_size);
-                            packet.Lock();
-                            m_incoming_packets.Add(packet);
+                            //Packet packet = new Packet(packet_opcode, packet_encrypted, false, buffer.Buffer, 6, packet_size);
+                            //packet.Lock();
+                            //m_incoming_packets.Add(packet);
                         }
                         else
                         {

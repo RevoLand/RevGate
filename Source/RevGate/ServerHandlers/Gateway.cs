@@ -1,22 +1,16 @@
-﻿using NetCoreServer;
-using System;
-using System.Net;
+﻿using RevGate.SessionHandlers.Gateway;
 
 namespace RevGate.ServerHandlers
 {
     internal class Gateway : ServerBase
     {
-        public Gateway(IPAddress address, int port) : base(address, port)
+        public Gateway(string listenerIp, int listenerPort) : base(listenerIp, listenerPort)
         {
-            OnStartedEvent += () =>
-            {
-                Console.WriteLine("GatewayServer Listener started...");
-            };
         }
 
-        protected override TcpSession CreateSession()
+        protected override SessionBase CreateSession()
         {
-            return new SessionHandlers.Gateway.Client(this);
+            return new Client(this);
         }
     }
 }

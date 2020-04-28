@@ -9,10 +9,11 @@
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <OutputPath>E:\Projeler\Silkroad\RevGate\Binaries\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="NetCoreServer" Version="3.0.11" />
+    <Folder Include="SessionHandlers\Agent\" />
   </ItemGroup>
 
 </Project>

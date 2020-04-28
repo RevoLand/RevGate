@@ -1,4 +1,4 @@
-﻿using NetCoreServer;
+﻿using RevGate.ServerHandlers;
 using RevGate.SilkroadSecurityApi;
 using System;
 using System.Diagnostics;
@@ -7,10 +7,11 @@ using System.Threading;
 
 namespace RevGate.SessionHandlers
 {
-    internal abstract class BaseToClient : TcpSession
+    internal abstract class BaseToClient : SessionBase
     {
         public BaseToServer ProxyToServer;
         public Security Security;
+
         public ManualResetEvent IncomingPacketsMre;
         public ManualResetEvent OutgoingPacketsMre;
         public CancellationTokenSource Cancellation;
@@ -27,7 +28,7 @@ namespace RevGate.SessionHandlers
 
         #endregion Events
 
-        protected BaseToClient(TcpServer server) : base(server)
+        protected BaseToClient(ServerBase server) : base(server)
         {
         }
 
@@ -35,8 +36,7 @@ namespace RevGate.SessionHandlers
         {
             try
             {
-                OptionReceiveBufferSize = 4096;
-                OptionSendBufferSize = 4096;
+                OptionReceiveBufferSize = 8192;
 
                 Console.WriteLine($"Client connected with ID: {Id}");
 
@@ -59,20 +59,22 @@ namespace RevGate.SessionHandlers
         protected override void OnDisconnected()
         {
             Cancellation.Cancel();
+
             if (ProxyToServer.IsConnected)
             {
-                ProxyToServer.DisconnectAsync();
+                ProxyToServer.Disconnect();
                 while (ProxyToServer.IsConnected)
                     Thread.Yield();
             }
-            //Console.WriteLine($"Client with Id: {Id} disconnected!");
+
+            Console.WriteLine($"Client with Id: {Id} disconnected!");
 
             OnDisconnectedEvent?.Invoke();
         }
 
         protected override void OnReceived(byte[] buffer, long offset, long size)
         {
-            //Console.WriteLine($"[BaseToClient][{Id}] OnReceived");
+            Console.WriteLine($"[BaseToClient][{Id}] OnReceived");
             Security.Recv(buffer, (int)offset, (int)size);
             IncomingPacketsMre.Set();
 
@@ -101,8 +103,8 @@ namespace RevGate.SessionHandlers
                     var packets = Security.TransferOutgoing();
                     foreach (var (transferBuffer, packet) in packets)
                     {
-                        //Console.WriteLine($"[C->P | Out][{packet.Opcode:X4}]{Environment.NewLine}{Utility.HexDump(transferBuffer.Buffer)}{Environment.NewLine}");
-                        Send(transferBuffer.Buffer, transferBuffer.Offset, transferBuffer.Size);
+                        Console.WriteLine($"[C->P | Out][{packet.Opcode:X4}]{Environment.NewLine}{Utility.HexDump(transferBuffer.Buffer)}{Environment.NewLine}");
+                        Send(transferBuffer.Buffer);
                     }
 
                     OutgoingPacketsMre.Reset();

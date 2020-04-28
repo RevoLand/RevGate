@@ -23,13 +23,14 @@ namespace RevGate.SessionHandlers.Gateway
                 while (!Cancellation.IsCancellationRequested)
                 {
                     IncomingPacketsMre.WaitOne();
+                    Console.WriteLine($"[Proxy] IncomingPacketsMre active");
                     Cancellation.Token.ThrowIfCancellationRequested();
 
                     var packets = Security.TransferIncoming();
                     Packet newPacket;
                     foreach (var packet in packets)
                     {
-                        //Console.WriteLine($"[S->P | In][{packet.Opcode:X4}]{Environment.NewLine}{Utility.HexDump(packet.GetBytes())}{Environment.NewLine}");
+                        Console.WriteLine($"[S->P | In][{packet.Opcode:X4}]{Environment.NewLine}{Utility.HexDump(packet.GetBytes())}{Environment.NewLine}");
                         switch (packet.Opcode)
                         {
                             case 0x5000:
@@ -72,8 +73,10 @@ namespace RevGate.SessionHandlers.Gateway
                     IncomingPacketsMre.Reset();
                 }
             }
-            catch (OperationCanceledException)
+            catch (OperationCanceledException e)
             {
+                Console.WriteLine(e);
+                throw;
             }
             catch (Exception e)
             {

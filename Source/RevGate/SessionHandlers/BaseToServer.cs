@@ -1,13 +1,13 @@
-﻿using RevGate.SilkroadSecurityApi;
+﻿using RevGate.ServerHandlers;
+using RevGate.SilkroadSecurityApi;
 using System;
 using System.Diagnostics;
 using System.Net.Sockets;
 using System.Threading;
-using TcpClient = NetCoreServer.TcpClient;
 
 namespace RevGate.SessionHandlers
 {
-    internal abstract class BaseToServer : TcpClient
+    internal abstract class BaseToServer : ClientBase
     {
         public readonly BaseToClient ProxyToClient;
         public Security Security;
@@ -37,10 +37,10 @@ namespace RevGate.SessionHandlers
         {
             try
             {
-                OptionReceiveBufferSize = 4096;
-                OptionSendBufferSize = 4096;
+                OptionReceiveBufferSize = 8192;
 
                 Security = new Security();
+                Security.ChangeIdentity("SR_Client", 0);
                 IncomingPacketsMre = new ManualResetEvent(false);
                 OutgoingPacketsMre = new ManualResetEvent(false);
 
@@ -60,14 +60,14 @@ namespace RevGate.SessionHandlers
             {
                 ProxyToClient.Disconnect();
             }
-            //Console.WriteLine($"Proxy Client Disconnected from Server: {Id}");
+            Console.WriteLine($"Proxy Client Disconnected from Server: {Id}");
 
             OnDisconnectedEvent?.Invoke();
         }
 
         protected override void OnReceived(byte[] buffer, long offset, long size)
         {
-            //Console.WriteLine($"[BaseToServer][{Id}] OnReceived");
+            Console.WriteLine($"[BaseToServer][{Id}] OnReceived");
             Security.Recv(buffer, (int)offset, (int)size);
             IncomingPacketsMre.Set();
 
@@ -91,12 +91,13 @@ namespace RevGate.SessionHandlers
                 while (!Cancellation.IsCancellationRequested)
                 {
                     OutgoingPacketsMre.WaitOne();
+                    Console.WriteLine($"[Proxy] OutgoingPacketsMre active");
                     Cancellation.Token.ThrowIfCancellationRequested();
 
                     var packets = Security.TransferOutgoing();
                     foreach (var (transferBuffer, packet) in packets)
                     {
-                        //Console.WriteLine($"[P->S | Out][{packet.Opcode:X4}]{Environment.NewLine}{Utility.HexDump(transferBuffer.Buffer)}{Environment.NewLine}");
+                        Console.WriteLine($"[P->S | Out][{packet.Opcode:X4}]{Environment.NewLine}{Utility.HexDump(transferBuffer.Buffer)}{Environment.NewLine}");
                         Send(transferBuffer.Buffer, transferBuffer.Offset, transferBuffer.Size);
                     }
 
